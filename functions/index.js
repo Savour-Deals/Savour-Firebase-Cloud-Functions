@@ -1,6 +1,9 @@
 //DEPLOYING???
 //  firebase use [savourtest or savourprod]
 
+//TODO: Create less invocations
+//TODO: handle stripe webhooks
+
 const fetch = require("isomorphic-fetch");
 const promise = require('es6-promise').promise;
 //promise.polyfill()
@@ -167,18 +170,22 @@ exports.userActiveChanged = functions.database.ref('Users/{user}/stripe/active')
       if (!change.after.val()) {
         //remove subscription ids for each vendor location
         //change address storage to make vendor visable again
-        vendorRef.set({
-          'address': null,
-          'subscription_id': null,
-          'inactive_address': location.val().address
+        vendorRef.child('address').once('value').then(snap => {
+          vendorRef.update({
+            'address': null,
+            'subscription_id': null,
+            'inactive_address': snap.val()
+          });
         });
       }else{
         //put subscription id into all locations operated by vendor
         //change address storage to hide vendor
-        vendorRef.set({
-          'address': location.val().inactive_address,
-          'subscription_id': sub_id,
-          'inactive_address': null
+        vendorRef.child('inactive_address').once('value').then(snap => {
+          vendorRef.update({
+            'address': snap.val(),
+            'subscription_id': sub_id,
+            'inactive_address': null
+          });
         });
       }
     });
