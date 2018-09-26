@@ -242,8 +242,11 @@ exports.updateStripeSubscription = functions.https.onCall((data, context) => {
 exports.createStripe = functions.https.onCall((data, context) => {
   const email = data.email;
   const src_id = data.src_id;
+  const coupon = data.coupon;
   console.log("Passed email: "+email);
   console.log("Passed source: "+ src_id);
+  const stripe_ref = admin.database().ref('/Users').child(context.auth.uid).child('stripe');
+
   //const name = data.name
   if (!context.auth) {
     // Throwing an HttpsError so that the client gets the error details.
@@ -256,7 +259,6 @@ exports.createStripe = functions.https.onCall((data, context) => {
     }).then(function(customer){
       console.log('Customer id: ' + customer.id)
       //Put this customer id in user root
-      const stripe_ref = admin.database().ref('/Users').child(context.auth.uid).child('stripe');
       stripe_ref.child('customer_id').set(customer.id);
       stripe_ref.child('current_source').set(src_id);
       return customer.id;
@@ -264,11 +266,11 @@ exports.createStripe = functions.https.onCall((data, context) => {
       //subscribe customer to the metered billing plan.
       return stripe.subscriptions.create({
         customer: cust_id,
+        coupon: coupon,
         //TODO: Modular plans for price scaling
         items: [{plan: 'plan_D9aRfjSRLJX3nw'}],
       })
     }).then(function(subscription){
-      const stripe_ref = admin.database().ref('/Users').child(context.auth.uid).child('stripe');
       console.log('Subscription id: ' + subscription.items.data[0].id);
       //Put sub id in user root. will be put in all vendor roots owned by user asynchronously
       stripe_ref.child('active').set(true);
@@ -276,6 +278,9 @@ exports.createStripe = functions.https.onCall((data, context) => {
       stripe_ref.child('stripe_subscription_id').set(subscription.id); //subscription id for cancelling and subscribing
       return { msg: "Success!"};
     }).catch(function(err) {
+      //Delete customer and let them try again
+      stripe_ref.remove();
+      stripe.customers.del("cus_Dfh6jpte1D1JyU", function(err, confirmation) {});
       console.log('createStripe: ' + err);
       throw new functions.https.HttpsError('aborted', err);
     });
@@ -350,12 +355,17 @@ exports.events = functions.https.onRequest((request, response) => {
   let sig = request.headers["stripe-signature"];
   try {
     let event = stripe.webhooks.constructEvent(request.rawBody, sig, endpointSecret);
-    return admin.database().ref('/events').push(event).then((snapshot) => {
-      return response.json({ received: true, ref: snapshot.ref.toString() });
-    }).catch((err) => {
-      console.error(err);
-      return response.status(500).end();
-    });
+    switch (event.type) {
+      case "":
+        
+        break;
+    
+      default:
+        console.log("Stripe event not handled");
+        return response.json({ received: true, ref: snapshot.ref.toString() });
+
+        break;
+    }
   } catch (err) {
     return response.status(400).end();
   }
