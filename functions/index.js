@@ -13,8 +13,8 @@ const functions = require('firebase-functions');
 let GeoFire = require('geofire');
 let GooglePlaces = require('node-googleplaces');
 
-var stripe = require("stripe")(functions.config().keys.test_secret_key);
-const endpointSecret = functions.config().keys.test_endpoint_secret;
+var stripe = require("stripe")(functions.config().keys.secret_key);
+const endpointSecret = functions.config().keys.endpoint_secret;
 
 
 // The Firebase Admin SDK to access the Firebase Realtime Database.
@@ -198,40 +198,27 @@ exports.updateStripeSubscription = functions.https.onCall((data, context) => {
   if(data.sub_id){
     console.log("Cancelling user subscription: " + data.sub_id);
     stripe.subscriptions.update(data.sub_id, {cancel_at_period_end: true});
-    stripeRef.child('cancelled_subscription_id').set(data.sub_id);
-    stripeRef.child('active').set(false); //sets off database trigger to remove vendors
-    stripeRef.child('stripe_subscription_id').remove();
-    
   }else{
     return new Promise((resolve, reject) => {
       var sub_id = null;
-      stripeRef.child('cancelled_subscription_id').once("value", function(data) {
+      stripeRef.once("value", function(data) {
+        console.log(data.val());
         if (data.val()){
-          sub_id = data.val();
+          if (data.val().cancelled_subscription_id){
+            sub_id = data.val().cancelled_subscription_id;
+          }else if (data.val().stripe_subscription_id){
+            sub_id = data.val().stripe_subscription_id;
+          }
         }
       }).then(()=>{
         if (sub_id){
           console.log("Re-subscribing user with sub_id: " + sub_id);
           stripe.subscriptions.update(sub_id, {cancel_at_period_end: false});
-          stripeRef.child('cancelled_subscription_id').remove();
-          stripeRef.child('active').set(true); //sets off database trigger to add vendors
-          stripeRef.child('stripe_subscription_id').set(sub_id);
           resolve( { msg: "Success!", sub_id: sub_id});
         }else{
           console.log("No subscription found. Creating new one.");
-          return stripe.subscriptions.create({
-            customer: cust_id,
-            //TODO: Modular plans for price scaling
-            items: [{plan: 'plan_D9aRfjSRLJX3nw'}],
-          }).then(function(subscription){
-            console.log('Subscription id: ' + subscription.items.data[0].id);
-            //Put sub id in user root. will be put in all vendor roots owned by user asynchronously
-            stripeRef.child('subscription_id').set(subscription.items.data[0].id);//subscription item id for incrementing metered
-            stripe_ref.child('stripe_subscription_id').set(subscription.id); //subscription id for cancelling and subscribing
-            resolve( { msg: "Success!", sub_id: subscription.id});
-          }).catch(function(err) {
-            console.log('createStripe: ' + err);
-            throw new functions.https.HttpsError('aborted', err);
+          createStripeSubscription(cust_id).then(result=>{
+            resolve( { msg: "Success!", sub_id: result.subscription.id});
           });
         }
       });
@@ -239,14 +226,29 @@ exports.updateStripeSubscription = functions.https.onCall((data, context) => {
   }
 });
 
+function createStripeSubscription(cust_id, coupon){
+  return stripe.subscriptions.create({
+    customer: cust_id,
+    //TODO: Modular plans for price scaling
+    coupon: coupon,
+    items: [{plan: functions.config().subscriptions.plan_1dollar}],
+  }).then(function(subscription){
+    console.log('Subscription id: ' + subscription.items.data[0].id);
+    return ( { subscription: subscription});
+  }).catch(function(err) {
+    console.log('createStripeSubscription: ' + err);
+    throw new functions.https.HttpsError('aborted', err);
+  });
+}
+
 exports.createStripe = functions.https.onCall((data, context) => {
   const email = data.email;
   const src_id = data.src_id;
   const coupon = data.coupon;
   console.log("Passed email: "+email);
   console.log("Passed source: "+ src_id);
-  const stripe_ref = admin.database().ref('/Users').child(context.auth.uid).child('stripe');
-
+  var stripe_ref = admin.database().ref('/Users').child(context.auth.uid).child('stripe');
+  var cust_id;
   //const name = data.name
   if (!context.auth) {
     // Throwing an HttpsError so that the client gets the error details.
@@ -256,31 +258,29 @@ exports.createStripe = functions.https.onCall((data, context) => {
     return stripe.customers.create({
       email: email,
       source: src_id,
+      metadata: {"firebase_id": context.auth.uid}
     }).then(function(customer){
-      console.log('Customer id: ' + customer.id)
       //Put this customer id in user root
-      stripe_ref.child('customer_id').set(customer.id);
-      stripe_ref.child('current_source').set(src_id);
-      return customer.id;
-    }).then(function(cust_id){
+      cust_id = customer.id;
+      return createStripeSubscription(cust_id, coupon);
+    }).then(function(result){
       //subscribe customer to the metered billing plan.
-      return stripe.subscriptions.create({
-        customer: cust_id,
-        coupon: coupon,
-        //TODO: Modular plans for price scaling
-        items: [{plan: 'plan_D9aRfjSRLJX3nw'}],
-      })
-    }).then(function(subscription){
-      console.log('Subscription id: ' + subscription.items.data[0].id);
-      //Put sub id in user root. will be put in all vendor roots owned by user asynchronously
+      stripe_ref.child('customer_id').set(cust_id);
+      stripe_ref.child('current_source').set(src_id);
+      stripe_ref.child('subscription_id').set(result.subscription.items.data[0].id);//subscription item id for incrementing metered
+      stripe_ref.child('stripe_subscription_id').set(result.subscription.id); //subscription id for cancelling and subscribing
       stripe_ref.child('active').set(true);
-      stripe_ref.child('subscription_id').set(subscription.items.data[0].id); //subscription item id for incrementing metered
-      stripe_ref.child('stripe_subscription_id').set(subscription.id); //subscription id for cancelling and subscribing
+      stripe_ref = admin.database().ref('/VendorAccounts').child(context.auth.uid).child('stripe');
+      stripe_ref.child('customer_id').set(cust_id);
+      stripe_ref.child('current_source').set(src_id);
+      stripe_ref.child('subscription_id').set(result.subscription.items.data[0].id);//subscription item id for incrementing metered
+      stripe_ref.child('stripe_subscription_id').set(result.subscription.id); //subscription id for cancelling and subscribing
+      stripe_ref.child('active').set(true);
       return { msg: "Success!"};
     }).catch(function(err) {
       //Delete customer and let them try again
       stripe_ref.remove();
-      stripe.customers.del("cus_Dfh6jpte1D1JyU", function(err, confirmation) {});
+      stripe.customers.del(cust_id, function(err, confirmation) {});
       console.log('createStripe: ' + err);
       throw new functions.https.HttpsError('aborted', err);
     });
@@ -295,7 +295,7 @@ exports.attachCardStripe = functions.https.onCall((data, context) => {
   }).then(function(source) {
     console.log("Created new source for "+ cust_id);
     return setStripeSource(cust_id,src_id, context.auth.uid).then(result=>{
-      return { msg: "Success!"};
+      return { current_source: src_id};
     });
   }).catch(function(err) {
     console.log('attachCardStripe: ' + err);
@@ -331,6 +331,10 @@ function setStripeSource(cust_id, src_id, uid) {
 
 exports.getCustomerStripe = functions.https.onCall((data, context) => {
   const cust_id = data.cust_id;
+  return getCustomer(cust_id);
+});
+
+function getCustomer(cust_id){
   return stripe.customers.retrieve(cust_id).then(function(customer){
     console.log(customer);
     return {"customer":customer};
@@ -338,7 +342,7 @@ exports.getCustomerStripe = functions.https.onCall((data, context) => {
     console.log('getCustomerStripe: ' + err);
     throw new functions.https.HttpsError('aborted', err);
   });
-});
+}
 
 exports.getInvoiceStripe = functions.https.onCall((data, context) => {
   const cust_id = data.cust_id;
@@ -355,22 +359,109 @@ exports.events = functions.https.onRequest((request, response) => {
   let sig = request.headers["stripe-signature"];
   try {
     let event = stripe.webhooks.constructEvent(request.rawBody, sig, endpointSecret);
-    switch (event.type) {
-      case "":
-        
-        break;
-    
-      default:
-        console.log("Stripe event not handled");
-        return response.json({ received: true, ref: snapshot.ref.toString() });
-
-        break;
-    }
+    return admin.database().ref('/events').push(event).then((snapshot) => {
+      return response.json({ received: true, ref: snapshot.ref.toString() });
+    }).catch((err) => {
+      console.error(err);
+      return response.status(500).end();
+    });
   } catch (err) {
     return response.status(400).end();
   }
 });
 
 
-
-
+exports.handleStripeEvent = functions.database.ref('events/{event}').onCreate((snapshot, context) => {
+  var uid, subscription, cust_id;
+  const event = snapshot.val();
+  snapshot.ref.remove();
+  switch (event.type) {
+    case "customer.deleted": //Account was deleted. delete stripe data.
+      if (event.data.object.metadata){
+        uid = event.data.object.metadata.firebase_id; //event gives us customer object
+        var stripe_ref = admin.database().ref('/Users').child(uid).child('stripe');
+        stripe_ref.remove();
+        stripe_ref = admin.database().ref('/VendorAccounts').child(uid).child('stripe');
+        stripe_ref.remove();
+      }
+      return 0;
+      break;
+    case "customer.created": //Account created. Add info to rtdb
+      if (event.data.object.metadata){
+        uid = event.data.object.metadata.firebase_id; //event gives us customer object
+        console.log('uid: '+ uid);
+      }
+      return 0;
+      break;
+    case "customer.subscription.created": //Subscription created, add info to rtdb customer
+      subscription = event.data.object; //event gives us subscription object
+      cust_id = subscription.customer;
+      return getCustomer(cust_id).then(result=>{
+        if (result.customer.metadata){
+          uid = result.customer.metadata.firebase_id;
+          var stripe_ref = admin.database().ref('/Users').child(uid).child('stripe');
+          stripe_ref.child('subscription_id').set(subscription.items.data[0].id);//subscription item id for incrementing metered
+          stripe_ref.child('stripe_subscription_id').set(subscription.id); //subscription id for cancelling and subscribing
+          stripe_ref.child('active').set(true);
+          stripe_ref = admin.database().ref('/VendorAccounts').child(uid).child('stripe');
+          stripe_ref.child('subscription_id').set(subscription.items.data[0].id);//subscription item id for incrementing metered
+          stripe_ref.child('stripe_subscription_id').set(subscription.id); //subscription id for cancelling and subscribing
+          stripe_ref.child('active').set(true);
+        }
+        return 0;
+      });
+      break;
+    case "customer.subscription.updated": //Subscription updated. Interested in items updated or cancel_at_period_end
+      subscription = event.data.object; //event gives us subscription object
+      cust_id = subscription.customer;
+      return getCustomer(cust_id).then(result=>{
+        if (result.customer.metadata){
+          uid = result.customer.metadata.firebase_id;
+          var stripe_ref = admin.database().ref('/Users').child(uid).child('stripe');
+          if (subscription.cancel_at_period_end){ //Subscription cancelling. 
+            stripe_ref.child('cancelled_subscription_id').set(subscription.id);
+            stripe_ref.child('stripe_subscription_id').remove();
+            stripe_ref.child('active').set(false); //sets off database trigger to remove vendors
+            stripe_ref = admin.database().ref('/VendorAccounts').child(uid).child('stripe');
+            stripe_ref.child('cancelled_subscription_id').set(subscription.id);
+            stripe_ref.child('stripe_subscription_id').remove();
+            stripe_ref.child('active').set(false); //sets off database trigger to remove vendors
+          }else{ //subscription items updated. Get new item id
+            stripe_ref.child('subscription_id').set(subscription.items.data[0].id);//subscription item id for incrementing metered
+            stripe_ref.child('stripe_subscription_id').set(subscription.id); //subscription id for cancelling and subscribing
+            stripe_ref.child('cancelled_subscription_id').remove();
+            stripe_ref.child('active').set(true);
+            stripe_ref = admin.database().ref('/VendorAccounts').child(uid).child('stripe');
+            stripe_ref.child('subscription_id').set(subscription.items.data[0].id);//subscription item id for incrementing metered
+            stripe_ref.child('stripe_subscription_id').set(subscription.id); //subscription id for cancelling and subscribing
+            stripe_ref.child('cancelled_subscription_id').remove();
+            stripe_ref.child('active').set(true);
+          }
+          return 0;
+        }
+      });
+      break;
+    case "customer.subscription.deleted": //Subscription deleted. Delete left over sub_id
+      subscription = event.data.object;
+      cust_id = subscription.customer;
+      return getCustomer(cust_id).then(result=>{
+        if (result.customer.metadata){
+          uid = result.customer.metadata.firebase_id;
+          var stripe_ref = admin.database().ref('/Users').child(uid).child('stripe');
+          stripe_ref.child('cancelled_subscription_id').remove();
+          stripe_ref.child('stripe_subscription_id').remove();
+          stripe_ref.child('active').set(false); //sets off database trigger to remove vendors
+          stripe_ref = admin.database().ref('/VendorAccounts').child(uid).child('stripe');
+          stripe_ref.child('cancelled_subscription_id').remove();
+          stripe_ref.child('stripe_subscription_id').remove();
+          stripe_ref.child('active').set(false); //sets off database trigger to remove vendors
+        }
+        return 0;
+      });
+      break;
+    default:
+      console.log("Stripe event not handled: " + event.type);
+      return 0;
+      break;
+  }
+});
