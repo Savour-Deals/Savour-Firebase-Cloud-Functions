@@ -105,7 +105,7 @@ exports.incrementStripe = functions.https.onCall((data, response) => {
       break;
   }
   const now = Math.floor(Date.now()/1000);
-  if(sub_id!=""){
+  if(sub_id){
     return stripe.usageRecords.create(sub_id, {
       quantity: amount,
       timestamp: now,
@@ -126,7 +126,7 @@ exports.incrementStripe = functions.https.onCall((data, response) => {
 });
 
 function incrementRedemptions(vendor_id,deal_type){
-  if (vendor_id!=""){
+  if (vendor_id){
     const vendorRef = admin.database().ref('/Vendors').child(vendor_id).child('period_redemptions');
     switch (deal_type) {
       case 1:
@@ -165,30 +165,32 @@ exports.userActiveChanged = functions.database.ref('Users/{user}/stripe/active')
     const user_ref = admin.database().ref('/Users').child(uid);
     return user_ref.child('locations').once("value");
   }).then(function(locations){
-    locations.forEach(location=>{
-      const vendorRef = admin.database().ref('/Vendors').child(location.key);
-      if (!change.after.val()) {
-        //remove subscription ids for each vendor location
-        //change address storage to make vendor visable again
-        vendorRef.child('address').once('value').then(snap => {
-          vendorRef.update({
-            'address': null,
-            'subscription_id': null,
-            'inactive_address': snap.val()
-          });
-        });
-      }else{
-        //put subscription id into all locations operated by vendor
-        //change address storage to hide vendor
-        vendorRef.child('inactive_address').once('value').then(snap => {
-          vendorRef.update({
-            'address': snap.val(),
-            'subscription_id': sub_id,
-            'inactive_address': null
-          });
-        });
-      }
-    });
+	if (sub_id){
+		locations.forEach(location=>{
+			const vendorRef = admin.database().ref('/Vendors').child(location.key);
+			if (!change.after.val()) {
+			  //remove subscription ids for each vendor location
+			  //change address storage to make vendor visable again
+			  vendorRef.child('address').once('value').then(snap => {
+				vendorRef.update({
+				  'address': null,
+				  'subscription_id': null,
+				  'inactive_address': snap.val()
+				});
+			  });
+			}else{
+			  //put subscription id into all locations operated by vendor
+			  //change address storage to hide vendor
+			  vendorRef.child('inactive_address').once('value').then(snap => {
+				vendorRef.update({
+				  'address': snap.val(),
+				  'subscription_id': sub_id,
+				  'inactive_address': null
+				});
+			  });
+			}
+		});
+	}
   }); 
 });
 
@@ -387,7 +389,7 @@ exports.handleStripeEvent = functions.database.ref('events/{event}').onCreate((s
       return 0;
       break;
     case "customer.created": //Account created. Add info to rtdb
-      if (event.data.object.metadata){
+      if (event.data.object){
         uid = event.data.object.metadata.firebase_id; //event gives us customer object
         console.log('uid: '+ uid);
       }
