@@ -105,7 +105,8 @@ exports.incrementStripe = functions.https.onCall((data, response) => {
       break;
   }
   const now = Math.floor(Date.now()/1000);
-  if(sub_id){
+  console.log(vendor_id + " :: " + now + " :: Creating record")
+  if(sub_id && sub_id != ""){
     return stripe.usageRecords.create(sub_id, {
       quantity: amount,
       timestamp: now,
