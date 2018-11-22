@@ -21,7 +21,36 @@ const endpointSecret = functions.config().keys.endpoint_secret;
 const admin = require('firebase-admin');
 admin.initializeApp();
 
-//Zomato: b64cc10fd2757db43d65d5af8d387daa
+
+//Create and delete account functions
+exports.incrementUserCount = functions.database.ref('Users/{userId}').onCreate(() => {
+  return admin.database().ref('appData/user_count').transaction(userCount => (userCount || 0) + 1);
+});
+
+exports.decrementUserCount = functions.database.ref('Users/{userId}').onDelete(() => {
+  return admin.database().ref('appData/user_count').transaction(userCount => (userCount || 0) - 1);
+});
+
+exports.incrementVendorCount = functions.database.ref('VendorAccounts/{userId}').onCreate(() => {
+  return admin.database().ref('appData/vendor_count').transaction(userCount => (userCount || 0) + 1);
+});
+
+exports.decrementVendorAccount = functions.database.ref('VendorAccounts/{userId}').onDelete(() => {
+  return admin.database().ref('appData/user_count').transaction(userCount => (userCount || 0) - 1);
+});
+
+exports.signup = functions.auth.user().onCreate((user) => {
+  user_ref = admin.database().ref('Users/').child(user.uid);
+  user_ref.child('email').set(user.email);
+  user_ref.child('full_name').set(user.displayName); 
+  return 0;
+});
+
+exports.deleteAccount = functions.auth.user().onDelete((user) => {
+  admin.database().ref('Users/').child(user.uid).remove();
+  admin.database().ref('VendorAccounts/').child(user.uid).remove();
+  return 0;
+});
 
 exports.updateVendor = functions.database.ref('Vendors/{newVendor}').onWrite((change, context) => {
   const before = change.before.val();
@@ -87,66 +116,104 @@ exports.updateVendor = functions.database.ref('Vendors/{newVendor}').onWrite((ch
 //   })
 // });
 
-exports.incrementStripe = functions.https.onCall((data, response) => {
-  const deal_type = data.deal_type || -1; //0: regular, 1: loyalty
-  const vendor_id = data.vendor_id;
-  const sub_id = data.subscription_id;
-  var amount = 1;
+//User redeemed a regular deal
+exports.dealRedeemed = functions.database.ref('Deals/{deal}/redeemed/{user}').onCreate((snapshot, context) => {
+  return snapshot.ref.parent.parent.once("value").then(snap => {//get uid
+    data = snap.val();
+    console.log('Deal Redeemed: ', data.vendor_id, snap.key);
+    incrementStripe(data.vendor_id,1);
+    incrementRedemptions(data.vendor_id,0);
+    return 0;
+  });
+});
 
-  switch (deal_type) {
-    //future: use deal_type to charge differently 
-    case 1:
-      //deal_type is loyalty
-      amount = 1;
-      break;
-    default:
-      //regular deal (deal_type=0) or deal type not given
-      amount = 1;
-      break;
-  }
+//user redeemed loyalty deal
+exports.loyaltyRedeemed = functions.database.ref('Users/{user}/loyalty/{vendor}/redemptions/count').onUpdate((change, context) => {
+  console.log('Loyalty Redeemed: ', context.params.vendor);
+  incrementStripe(context.params.vendor,1);
+  incrementRedemptions(context.params.vendor,1);
+  return 0;
+});
+
+function incrementStripe(vendor_id,amount){
   const now = Math.floor(Date.now()/1000);
   console.log(vendor_id + " :: " + now + " :: Creating record")
-  if(sub_id && sub_id != ""){
-    return stripe.usageRecords.create(sub_id, {
-      quantity: amount,
-      timestamp: now,
-      action: "increment"
-    }).then(()=>{
-      console.log("Stripe subscription usage incremented.")
-      incrementRedemptions(vendor_id,deal_type);
+  return admin.database().ref('/Vendors').child(vendor_id).child('subscription_id').once("value").then(snap => {
+    if (snap.exists()){
+      return stripe.usageRecords.create(snap.val(), {
+        quantity: amount,
+        timestamp: now,
+        action: "increment"
+      }).then(()=>{
+        console.log("Stripe subscription usage incremented.")
+        return { msg: "Success!"};
+      }).catch(function(err) {
+        console.log('incrementStripe: ' + err);
+        throw new functions.https.HttpsError('aborted', err);
+      });
+    }else{
+      console.log("No stripe subscription to update.")
       return { msg: "Success!"};
-    }).catch(function(err) {
-      console.log('incrementStripe: ' + err);
-      throw new functions.https.HttpsError('aborted', err);
-    });
-  }else{//if no sub_id passed, assume call is correct that they shouldnt be charged
-    console.log("No stripe subscription to update.")
-    incrementRedemptions(vendor_id,deal_type);
-    return { msg: "Success!"};
-  }
+    }
+  });
+};
+
+
+exports.incrementStripe = functions.https.onCall((data, response) => {
+  console.log("incrmentStripe oncall removed");
+//   const deal_type = data.deal_type || -1; //0: regular, 1: loyalty
+//   const vendor_id = data.vendor_id;
+//   const sub_id = data.subscription_id;
+//   var amount = 1;
+
+//   switch (deal_type) {
+//     //future: use deal_type to charge differently 
+//     case 1:
+//       //deal_type is loyalty
+//       amount = 1;
+//       break;
+//     default:
+//       //regular deal (deal_type=0) or deal type not given
+//       amount = 1;
+//       break;
+//   }
+//   const now = Math.floor(Date.now()/1000);
+//   console.log(vendor_id + " :: " + now + " :: Creating record")
+//   if(sub_id && sub_id != ""){
+//     return stripe.usageRecords.create(sub_id, {
+//       quantity: amount,
+//       timestamp: now,
+//       action: "increment"
+//     }).then(()=>{
+//       console.log("Stripe subscription usage incremented.")
+//       incrementRedemptions(vendor_id,deal_type);
+//       return { msg: "Success!"};
+//     }).catch(function(err) {
+//       console.log('incrementStripe: ' + err);
+//       throw new functions.https.HttpsError('aborted', err);
+//     });
+//   }else{//if no sub_id passed, assume call is correct that they shouldnt be charged
+//     console.log("No stripe subscription to update.")
+//     incrementRedemptions(vendor_id,deal_type);
+//     return { msg: "Success!"};
+//   }
 });
 
 function incrementRedemptions(vendor_id,deal_type){
-  if (vendor_id){
-    const vendorRef = admin.database().ref('/Vendors').child(vendor_id).child('period_redemptions');
-    switch (deal_type) {
-      case 1:
-        //deal_type is loyalty
-        vendorRef.child('loyalty').transaction(function (current_value) {
-          return (current_value || 0) + 1;
-        });
-        break;
-      default:
-        //regular deal (deal_type=0) or deal type not given
-        vendorRef.child('deals').transaction(function (current_value) {
-          return (current_value || 0) + 1;
-        });
-        break;
-    }
-  }else{
-    //App never supplied a vendor_id. May be old app version
-    //Cant log redemptions :()
-    console.log('vendor_id not provided. Could not increment period count.')
+  const vendorRef = admin.database().ref('/Vendors').child(vendor_id).child('period_redemptions');
+  switch (deal_type) {
+    case 1:
+      //deal_type is loyalty
+      vendorRef.child('loyalty').transaction(function (current_value) {
+        return (current_value || 0) + 1;
+      });
+      break;
+    default:
+      //regular deal (deal_type=0) or deal type not given
+      vendorRef.child('deals').transaction(function (current_value) {
+        return (current_value || 0) + 1;
+      });
+      break;
   }
 }
 
@@ -173,11 +240,11 @@ exports.userActiveChanged = functions.database.ref('Users/{user}/stripe/active')
 			  //remove subscription ids for each vendor location
 			  //change address storage to make vendor visable again
 			  vendorRef.child('address').once('value').then(snap => {
-				vendorRef.update({
-				  'address': null,
-				  'subscription_id': null,
-				  'inactive_address': snap.val()
-				});
+          vendorRef.update({
+            'address': null,
+            'subscription_id': null,
+            'inactive_address': snap.val()
+          });
 			  });
 			}else{
 			  //put subscription id into all locations operated by vendor
@@ -358,7 +425,8 @@ exports.getInvoiceStripe = functions.https.onCall((data, context) => {
   });
 });
 
-exports.events = functions.https.onRequest((request, response) => {
+//retrieve stripe event and queue it in RTDB
+exports.events = functions.https.onRequest((request, response) => { 
   let sig = request.headers["stripe-signature"];
   try {
     let event = stripe.webhooks.constructEvent(request.rawBody, sig, endpointSecret);
@@ -378,7 +446,32 @@ exports.handleStripeEvent = functions.database.ref('events/{event}').onCreate((s
   var uid, subscription, cust_id;
   const event = snapshot.val();
   snapshot.ref.remove();
+  console.log("handleStripeEvent: ", event.type);
   switch (event.type) {
+    case "invoice.payment_succeeded":
+      invoice = event.data.object; //event gives us subscription object
+      cust_id = invoice.customer;
+      //reset period counters
+      return getCustomer(cust_id).then(result=>{
+        if (result.customer.metadata){
+          uid = result.customer.metadata.firebase_id;
+          return uid;
+        }else{
+          throw 'Could not get customer uid';
+        }
+      }).then(uid=>{
+        const user_ref = admin.database().ref('/Users').child(uid);
+        return user_ref.child('locations').once("value");
+      }).then(function(locations){
+        locations.forEach(location=>{//for every location under this vendor, reset their period redemptions
+          admin.database().ref('/Vendors').child(location.key).child('period_redemptions').remove();
+        });
+        return 0;
+      }).catch(function(err) {
+        console.log('ERROR::handleStripeEvent: invoice.payment_succeeded ' + err);
+        return -1;
+      });
+      break;
     case "customer.deleted": //Account was deleted. delete stripe data.
       if (event.data.object.metadata){
         uid = event.data.object.metadata.firebase_id; //event gives us customer object
