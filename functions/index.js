@@ -1,8 +1,6 @@
 //DEPLOYING???
 //  firebase use [savourtest or savourprod]
 
-//TODO: Create less invocations
-//TODO: handle stripe webhooks
 
 const fetch = require("isomorphic-fetch");
 const promise = require('es6-promise').promise;
