@@ -116,13 +116,19 @@ exports.updateVendor = functions.database.ref('Vendors/{newVendor}').onWrite((ch
 
 //User redeemed a regular deal
 exports.dealRedeemed = functions.database.ref('Deals/{deal}/redeemed/{user}').onCreate((snapshot, context) => {
-  return snapshot.ref.parent.parent.once("value").then(snap => {//get uid
-    data = snap.val();
-    console.log('Deal Redeemed: ', data.vendor_id, snap.key);
-    incrementStripe(data.vendor_id,1);
-    incrementRedemptions(data.vendor_id,0);
+  if (context.params.user == context.auth.uid){
+    return snapshot.ref.parent.parent.once("value").then(snap => {//get uid
+      data = snap.val();
+      console.log('Deal Redeemed: ', data.vendor_id, snap.key);
+      incrementStripe(data.vendor_id,1);
+      incrementRedemptions(data.vendor_id,0);
+      return 0;
+    });
+  }else{
+    console.log(context.params.user + " != " + context.auth.uid + ". Was the key just changed? Stripe not incremented.");
     return 0;
-  });
+  }
+
 });
 
 //user redeemed loyalty deal
