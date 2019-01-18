@@ -162,45 +162,9 @@ function incrementStripe(vendor_id,amount){
   });
 };
 
-
+//This function is left here for old app versions who still call this function. 
 exports.incrementStripe = functions.https.onCall((data, response) => {
   console.log("incrmentStripe oncall removed");
-//   const deal_type = data.deal_type || -1; //0: regular, 1: loyalty
-//   const vendor_id = data.vendor_id;
-//   const sub_id = data.subscription_id;
-//   var amount = 1;
-
-//   switch (deal_type) {
-//     //future: use deal_type to charge differently 
-//     case 1:
-//       //deal_type is loyalty
-//       amount = 1;
-//       break;
-//     default:
-//       //regular deal (deal_type=0) or deal type not given
-//       amount = 1;
-//       break;
-//   }
-//   const now = Math.floor(Date.now()/1000);
-//   console.log(vendor_id + " :: " + now + " :: Creating record")
-//   if(sub_id && sub_id != ""){
-//     return stripe.usageRecords.create(sub_id, {
-//       quantity: amount,
-//       timestamp: now,
-//       action: "increment"
-//     }).then(()=>{
-//       console.log("Stripe subscription usage incremented.")
-//       incrementRedemptions(vendor_id,deal_type);
-//       return { msg: "Success!"};
-//     }).catch(function(err) {
-//       console.log('incrementStripe: ' + err);
-//       throw new functions.https.HttpsError('aborted', err);
-//     });
-//   }else{//if no sub_id passed, assume call is correct that they shouldnt be charged
-//     console.log("No stripe subscription to update.")
-//     incrementRedemptions(vendor_id,deal_type);
-//     return { msg: "Success!"};
-//   }
 });
 
 function incrementRedemptions(vendor_id,deal_type){
@@ -222,48 +186,64 @@ function incrementRedemptions(vendor_id,deal_type){
 }
 
 exports.userActiveChanged = functions.database.ref('Users/{user}/stripe/active').onWrite((change) => {
-  var sub_id = null;
   return change.after.ref.parent.parent.once("value").then(snap => {//get uid
     const uid = snap.key;
-    console.log("User: " + uid);
-    if (change.after.val()) {
-      console.log("Setting sub ids and vendor locations");
-      sub_id = snap.val().stripe.subscription_id;
+    const locations = snap.val().locations;
+    console.log("VendorUserID: " + uid);
+    if (locations){//Check if this person even has vendors attached!
+      if (change.after.val()) {
+        console.log("Setting sub ids and vendor locations");
+        var sub_id = snap.val().stripe.subscription_id;
+        if (sub_id === undefined){//if firebase does not have subscription_id, sub_id is undefined. 
+          //We instead want to pass null to vendorRef.updates
+          sub_id = null;
+        }
+        Object.keys(locations).forEach(locationKey=>{
+          //lookup inactive address, remove it and add it as active address, also update sub id
+          const vendorRef = admin.database().ref('/Vendors').child(locationKey);
+          vendorRef.child('inactive_address').once('value').then(vendorSnap => {
+            if (vendorSnap.exists()){//check to see if inactive_address is actually there
+              vendorRef.update({
+                'address': vendorSnap.val(),
+                'subscription_id': sub_id,
+                'inactive_address': null
+              });
+              console.log("Location set to active mode.");
+            }else{
+              vendorRef.update({
+                'subscription_id': sub_id,
+              });
+              console.log("Warning: Inactive address for " + locationKey + " was not present. Could not convert to active address.");
+            }
+          });
+        });
+      }else{
+        console.log("Removing sub ids and vendors locations");
+        Object.keys(locations).forEach(locationKey=>{
+          //lookup address of each vendor, delete address and sub id, replace with inactive address
+          const vendorRef = admin.database().ref('/Vendors').child(locationKey);
+          vendorRef.child('address').once('value').then(vendorSnap => {
+            if (vendorSnap.exists()){//check to see if address is actually there
+              vendorRef.update({
+                'address': null,
+                'subscription_id': null,
+                'inactive_address': vendorSnap.val()
+              });
+              console.log("Location set to inactive mode.");
+            }else{
+              vendorRef.update({
+                'subscription_id': null,
+              });
+              console.log("Warning: Address for " + locationKey + " was not present. Could not convert to inactive address.");
+            }
+          });
+        });
+      }
     }else{
-      console.log("Removing sub ids and vendors locations");
+      console.log("No locations to update so we dont care.")
     }
     return uid;
-  }).then(uid=>{
-    const user_ref = admin.database().ref('/Users').child(uid);
-    return user_ref.child('locations').once("value");
-  }).then(function(locations){
-	if (sub_id){
-		locations.forEach(location=>{
-			const vendorRef = admin.database().ref('/Vendors').child(location.key);
-			if (!change.after.val()) {
-			  //remove subscription ids for each vendor location
-			  //change address storage to make vendor visable again
-			  vendorRef.child('address').once('value').then(snap => {
-          vendorRef.update({
-            'address': null,
-            'subscription_id': null,
-            'inactive_address': snap.val()
-          });
-			  });
-			}else{
-			  //put subscription id into all locations operated by vendor
-			  //change address storage to hide vendor
-			  vendorRef.child('inactive_address').once('value').then(snap => {
-				vendorRef.update({
-				  'address': snap.val(),
-				  'subscription_id': sub_id,
-				  'inactive_address': null
-				});
-			  });
-			}
-		});
-	}
-  }); 
+  })
 });
 
 exports.updateStripeSubscription = functions.https.onCall((data, context) => {
