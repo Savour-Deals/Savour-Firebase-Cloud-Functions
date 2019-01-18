@@ -1,0 +1,234 @@
+[debug] [2019-01-18T19:43:04.844Z] ----------------------------------------------------------------------
+[debug] [2019-01-18T19:43:04.846Z] Command:       /usr/local/bin/node /usr/local/bin/firebase deploy
+[debug] [2019-01-18T19:43:04.846Z] CLI Version:   6.3.0
+[debug] [2019-01-18T19:43:04.846Z] Platform:      darwin
+[debug] [2019-01-18T19:43:04.846Z] Node Version:  v10.4.1
+[debug] [2019-01-18T19:43:04.847Z] Time:          Fri Jan 18 2019 13:43:04 GMT-0600 (Central Standard Time)
+[debug] [2019-01-18T19:43:04.847Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2019-01-18T19:43:04.856Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2019-01-18T19:43:04.856Z] > authorizing via signed-in user
+[debug] [2019-01-18T19:43:04.856Z] [iam] checking project savour-deals for permissions ["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]
+[debug] [2019-01-18T19:43:04.858Z] >>> HTTP REQUEST POST https://cloudresourcemanager.googleapis.com/v1/projects/savour-deals:testIamPermissions  
+
+[debug] [2019-01-18T19:43:05.137Z] <<< HTTP RESPONSE 200
+[info] 
+[info] === Deploying to 'savour-deals'...
+[info] 
+[info] i  deploying functions
+[debug] [2019-01-18T19:43:06.914Z] > [functions] package.json contents: {
+  "name": "functions",
+  "description": "Cloud Functions for Firebase",
+  "dependencies": {
+    "@google/maps": "^0.5.5",
+    "es6-promise": "^4.2.5",
+    "firebase": "^5.7.3",
+    "firebase-admin": "^6.5.0",
+    "firebase-functions": "^2.1.0",
+    "geofire": "^4.1.2",
+    "isomorphic-fetch": "^2.2.1",
+    "node-googleplaces": "^0.1.2",
+    "stripe": "^6.20.1",
+    "xmlhttprequest": "^1.8.0"
+  },
+  "private": true
+}
+[info] i  functions: ensuring necessary APIs are enabled...
+[debug] [2019-01-18T19:43:06.915Z] >>> HTTP REQUEST GET https://servicemanagement.googleapis.com/v1/services/cloudfunctions.googleapis.com/projectSettings/savour-deals?view=CONSUMER_VIEW  
+ 
+[debug] [2019-01-18T19:43:06.916Z] >>> HTTP REQUEST GET https://servicemanagement.googleapis.com/v1/services/runtimeconfig.googleapis.com/projectSettings/savour-deals?view=CONSUMER_VIEW  
+ 
+[debug] [2019-01-18T19:43:07.635Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:07.651Z] <<< HTTP RESPONSE 200
+[info] ✔  functions: all necessary APIs are enabled
+[debug] [2019-01-18T19:43:07.652Z] >>> HTTP REQUEST GET https://cloudresourcemanager.googleapis.com/v1/projects/savour-deals  
+ 
+[debug] [2019-01-18T19:43:07.848Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:07.849Z] >>> HTTP REQUEST GET https://mobilesdk-pa.googleapis.com/v1/projects/165647122349:getServerAppConfig  
+ 
+[debug] [2019-01-18T19:43:08.050Z] <<< HTTP RESPONSE 200
+[info] i  functions: preparing functions directory for uploading...
+[debug] [2019-01-18T19:43:08.052Z] >>> HTTP REQUEST GET https://runtimeconfig.googleapis.com/v1beta1/projects/savour-deals/configs  
+ 
+[debug] [2019-01-18T19:43:08.307Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:08.308Z] >>> HTTP REQUEST GET https://runtimeconfig.googleapis.com/v1beta1/projects/savour-deals/configs/keys/variables  
+ 
+[debug] [2019-01-18T19:43:08.308Z] >>> HTTP REQUEST GET https://runtimeconfig.googleapis.com/v1beta1/projects/savour-deals/configs/subscriptions/variables  
+ 
+[debug] [2019-01-18T19:43:08.611Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:08.611Z] >>> HTTP REQUEST GET https://runtimeconfig.googleapis.com/v1beta1/projects/savour-deals/configs/subscriptions/variables/plan_1dollar  
+ 
+[debug] [2019-01-18T19:43:08.799Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:08.800Z] >>> HTTP REQUEST GET https://runtimeconfig.googleapis.com/v1beta1/projects/savour-deals/configs/keys/variables/endpoint_secret  
+ 
+[debug] [2019-01-18T19:43:08.800Z] >>> HTTP REQUEST GET https://runtimeconfig.googleapis.com/v1beta1/projects/savour-deals/configs/keys/variables/secret_key  
+ 
+[debug] [2019-01-18T19:43:08.827Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:09.291Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:09.292Z] <<< HTTP RESPONSE 200
+[info] i  functions: packaged functions (42.87 KB) for uploading
+[debug] [2019-01-18T19:43:09.623Z] >>> HTTP REQUEST POST https://cloudfunctions.googleapis.com/v1/projects/savour-deals/locations/us-central1/functions:generateUploadUrl  
+ 
+[debug] [2019-01-18T19:43:09.931Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:09.932Z] >>> HTTP REQUEST PUT https://storage.googleapis.com/gcf-upload-us-central1-3cb390b2-933b-46e7-9942-160719c72807/28448ec7-b789-4535-85fb-d5f253a3aea7.zip?GoogleAccessId=service-165647122349@gcf-admin-robot.iam.gserviceaccount.com&Expires=1547842389&Signature=grCFlcr6HusBXrzNRF%2B7LiqliCt4t2dHU25TnfYYmCApPKuq8bUmVY322Va2ZTOduxGGZnXPq3kv%2FHEvBWtNg%2BozE5XFzo6dNjirsLx1wav3qORwKgfQQX%2BCayRKoGWDztSH%2F%2FISw8m5nZYku1F1I0BrrZuxvqrLmAK2ShJi9qkdaM8KdsK2SCwyGkhUJc0VrVacRAZRpd%2BP1RiSZgSaZRzgoaCsVrCOYZ0UhXrcr9pEg1R%2FiktrfXbuxbq0vK81ulM3O42GCxtFV%2BdO3xtBvOR7nXPXqaIKWfKgDE0el0HnkvkIItKKxGX3uMbyuMBGzQ9eBjga%2Ff491dK%2Bbsp70A%3D%3D  
+
+[debug] [2019-01-18T19:43:10.335Z] <<< HTTP RESPONSE 200
+[info] ✔  functions: functions folder uploaded successfully
+[debug] [2019-01-18T19:43:10.337Z] >>> HTTP REQUEST GET https://cloudfunctions.googleapis.com/v1/projects/savour-deals/locations/-/functions  
+ 
+[debug] [2019-01-18T19:43:10.809Z] <<< HTTP RESPONSE 200
+[info] i  functions: updating Node.js 6 function incrementUserCount(us-central1)...
+[debug] [2019-01-18T19:43:10.812Z] Trigger is:  {"eventTrigger":{"resource":"projects/_/instances/savour-deals/refs/Users/{userId}","eventType":"providers/google.firebase.database/eventTypes/ref.create","service":"firebaseio.com"}}
+[info] i  functions: updating Node.js 6 function decrementUserCount(us-central1)...
+[debug] [2019-01-18T19:43:10.812Z] Trigger is:  {"eventTrigger":{"resource":"projects/_/instances/savour-deals/refs/Users/{userId}","eventType":"providers/google.firebase.database/eventTypes/ref.delete","service":"firebaseio.com"}}
+[info] i  functions: updating Node.js 6 function incrementVendorCount(us-central1)...
+[debug] [2019-01-18T19:43:10.812Z] Trigger is:  {"eventTrigger":{"resource":"projects/_/instances/savour-deals/refs/VendorAccounts/{userId}","eventType":"providers/google.firebase.database/eventTypes/ref.create","service":"firebaseio.com"}}
+[info] i  functions: updating Node.js 6 function decrementVendorAccount(us-central1)...
+[debug] [2019-01-18T19:43:10.812Z] Trigger is:  {"eventTrigger":{"resource":"projects/_/instances/savour-deals/refs/VendorAccounts/{userId}","eventType":"providers/google.firebase.database/eventTypes/ref.delete","service":"firebaseio.com"}}
+[info] i  functions: updating Node.js 6 function signup(us-central1)...
+[debug] [2019-01-18T19:43:10.813Z] Trigger is:  {"eventTrigger":{"resource":"projects/savour-deals","eventType":"providers/firebase.auth/eventTypes/user.create","service":"firebaseauth.googleapis.com"}}
+[info] i  functions: updating Node.js 6 function deleteAccount(us-central1)...
+[debug] [2019-01-18T19:43:10.813Z] Trigger is:  {"eventTrigger":{"resource":"projects/savour-deals","eventType":"providers/firebase.auth/eventTypes/user.delete","service":"firebaseauth.googleapis.com"}}
+[info] i  functions: updating Node.js 6 function updateVendor(us-central1)...
+[debug] [2019-01-18T19:43:10.813Z] Trigger is:  {"eventTrigger":{"resource":"projects/_/instances/savour-deals/refs/Vendors/{newVendor}","eventType":"providers/google.firebase.database/eventTypes/ref.write","service":"firebaseio.com"}}
+[info] i  functions: updating Node.js 6 function dealRedeemed(us-central1)...
+[debug] [2019-01-18T19:43:10.813Z] Trigger is:  {"eventTrigger":{"resource":"projects/_/instances/savour-deals/refs/Deals/{deal}/redeemed/{user}","eventType":"providers/google.firebase.database/eventTypes/ref.create","service":"firebaseio.com"}}
+[info] i  functions: updating Node.js 6 function loyaltyRedeemed(us-central1)...
+[debug] [2019-01-18T19:43:10.814Z] Trigger is:  {"eventTrigger":{"resource":"projects/_/instances/savour-deals/refs/Users/{user}/loyalty/{vendor}/redemptions/count","eventType":"providers/google.firebase.database/eventTypes/ref.update","service":"firebaseio.com"}}
+[info] i  functions: updating Node.js 6 function incrementStripe(us-central1)...
+[debug] [2019-01-18T19:43:10.814Z] Trigger is:  {"httpsTrigger":{}}
+[info] i  functions: updating Node.js 6 function userActiveChanged(us-central1)...
+[debug] [2019-01-18T19:43:10.814Z] Trigger is:  {"eventTrigger":{"resource":"projects/_/instances/savour-deals/refs/Users/{user}/stripe/active","eventType":"providers/google.firebase.database/eventTypes/ref.write","service":"firebaseio.com"}}
+[info] i  functions: updating Node.js 6 function updateStripeSubscription(us-central1)...
+[debug] [2019-01-18T19:43:10.815Z] Trigger is:  {"httpsTrigger":{}}
+[info] i  functions: updating Node.js 6 function createStripe(us-central1)...
+[debug] [2019-01-18T19:43:10.815Z] Trigger is:  {"httpsTrigger":{}}
+[info] i  functions: updating Node.js 6 function attachCardStripe(us-central1)...
+[debug] [2019-01-18T19:43:10.815Z] Trigger is:  {"httpsTrigger":{}}
+[info] i  functions: updating Node.js 6 function changeStripeSource(us-central1)...
+[debug] [2019-01-18T19:43:10.815Z] Trigger is:  {"httpsTrigger":{}}
+[info] i  functions: updating Node.js 6 function getCustomerStripe(us-central1)...
+[debug] [2019-01-18T19:43:10.815Z] Trigger is:  {"httpsTrigger":{}}
+[info] i  functions: updating Node.js 6 function getInvoiceStripe(us-central1)...
+[debug] [2019-01-18T19:43:10.824Z] Trigger is:  {"httpsTrigger":{}}
+[info] i  functions: updating Node.js 6 function events(us-central1)...
+[debug] [2019-01-18T19:43:10.825Z] Trigger is:  {"httpsTrigger":{}}
+[info] i  functions: updating Node.js 6 function handleStripeEvent(us-central1)...
+[debug] [2019-01-18T19:43:10.825Z] Trigger is:  {"eventTrigger":{"resource":"projects/_/instances/savour-deals/refs/events/{event}","eventType":"providers/google.firebase.database/eventTypes/ref.create","service":"firebaseio.com"}}
+[debug] [2019-01-18T19:43:10.830Z] >>> HTTP REQUEST PATCH https://cloudfunctions.googleapis.com/v1/projects/savour-deals/locations/us-central1/functions/incrementUserCount {"updateMask":"sourceUploadUrl,name,labels,eventTrigger.resource,eventTrigger.eventType,eventTrigger.service"} 
+
+[debug] [2019-01-18T19:43:10.832Z] >>> HTTP REQUEST PATCH https://cloudfunctions.googleapis.com/v1/projects/savour-deals/locations/us-central1/functions/decrementUserCount {"updateMask":"sourceUploadUrl,name,labels,eventTrigger.resource,eventTrigger.eventType,eventTrigger.service"} 
+
+[debug] [2019-01-18T19:43:10.832Z] >>> HTTP REQUEST PATCH https://cloudfunctions.googleapis.com/v1/projects/savour-deals/locations/us-central1/functions/incrementVendorCount {"updateMask":"sourceUploadUrl,name,labels,eventTrigger.resource,eventTrigger.eventType,eventTrigger.service"} 
+
+[debug] [2019-01-18T19:43:10.833Z] >>> HTTP REQUEST PATCH https://cloudfunctions.googleapis.com/v1/projects/savour-deals/locations/us-central1/functions/decrementVendorAccount {"updateMask":"sourceUploadUrl,name,labels,eventTrigger.resource,eventTrigger.eventType,eventTrigger.service"} 
+
+[debug] [2019-01-18T19:43:10.833Z] >>> HTTP REQUEST PATCH https://cloudfunctions.googleapis.com/v1/projects/savour-deals/locations/us-central1/functions/signup {"updateMask":"sourceUploadUrl,name,labels,eventTrigger.resource,eventTrigger.eventType,eventTrigger.service"} 
+
+[debug] [2019-01-18T19:43:10.834Z] >>> HTTP REQUEST PATCH https://cloudfunctions.googleapis.com/v1/projects/savour-deals/locations/us-central1/functions/deleteAccount {"updateMask":"sourceUploadUrl,name,labels,eventTrigger.resource,eventTrigger.eventType,eventTrigger.service"} 
+
+[debug] [2019-01-18T19:43:10.834Z] >>> HTTP REQUEST PATCH https://cloudfunctions.googleapis.com/v1/projects/savour-deals/locations/us-central1/functions/updateVendor {"updateMask":"sourceUploadUrl,name,labels,eventTrigger.resource,eventTrigger.eventType,eventTrigger.service"} 
+
+[debug] [2019-01-18T19:43:10.835Z] >>> HTTP REQUEST PATCH https://cloudfunctions.googleapis.com/v1/projects/savour-deals/locations/us-central1/functions/dealRedeemed {"updateMask":"sourceUploadUrl,name,labels,eventTrigger.resource,eventTrigger.eventType,eventTrigger.service"} 
+
+[debug] [2019-01-18T19:43:10.839Z] >>> HTTP REQUEST PATCH https://cloudfunctions.googleapis.com/v1/projects/savour-deals/locations/us-central1/functions/loyaltyRedeemed {"updateMask":"sourceUploadUrl,name,labels,eventTrigger.resource,eventTrigger.eventType,eventTrigger.service"} 
+
+[debug] [2019-01-18T19:43:10.840Z] >>> HTTP REQUEST PATCH https://cloudfunctions.googleapis.com/v1/projects/savour-deals/locations/us-central1/functions/incrementStripe {"updateMask":"sourceUploadUrl,name,labels,httpsTrigger"} 
+
+[debug] [2019-01-18T19:43:10.840Z] >>> HTTP REQUEST PATCH https://cloudfunctions.googleapis.com/v1/projects/savour-deals/locations/us-central1/functions/userActiveChanged {"updateMask":"sourceUploadUrl,name,labels,eventTrigger.resource,eventTrigger.eventType,eventTrigger.service"} 
+
+[debug] [2019-01-18T19:43:10.840Z] >>> HTTP REQUEST PATCH https://cloudfunctions.googleapis.com/v1/projects/savour-deals/locations/us-central1/functions/updateStripeSubscription {"updateMask":"sourceUploadUrl,name,labels,httpsTrigger"} 
+
+[debug] [2019-01-18T19:43:10.841Z] >>> HTTP REQUEST PATCH https://cloudfunctions.googleapis.com/v1/projects/savour-deals/locations/us-central1/functions/createStripe {"updateMask":"sourceUploadUrl,name,labels,httpsTrigger"} 
+
+[debug] [2019-01-18T19:43:10.841Z] >>> HTTP REQUEST PATCH https://cloudfunctions.googleapis.com/v1/projects/savour-deals/locations/us-central1/functions/attachCardStripe {"updateMask":"sourceUploadUrl,name,labels,httpsTrigger"} 
+
+[debug] [2019-01-18T19:43:10.841Z] >>> HTTP REQUEST PATCH https://cloudfunctions.googleapis.com/v1/projects/savour-deals/locations/us-central1/functions/changeStripeSource {"updateMask":"sourceUploadUrl,name,labels,httpsTrigger"} 
+
+[debug] [2019-01-18T19:43:10.842Z] >>> HTTP REQUEST PATCH https://cloudfunctions.googleapis.com/v1/projects/savour-deals/locations/us-central1/functions/getCustomerStripe {"updateMask":"sourceUploadUrl,name,labels,httpsTrigger"} 
+
+[debug] [2019-01-18T19:43:10.842Z] >>> HTTP REQUEST PATCH https://cloudfunctions.googleapis.com/v1/projects/savour-deals/locations/us-central1/functions/getInvoiceStripe {"updateMask":"sourceUploadUrl,name,labels,httpsTrigger"} 
+
+[debug] [2019-01-18T19:43:10.843Z] >>> HTTP REQUEST PATCH https://cloudfunctions.googleapis.com/v1/projects/savour-deals/locations/us-central1/functions/events {"updateMask":"sourceUploadUrl,name,labels,httpsTrigger"} 
+
+[debug] [2019-01-18T19:43:10.843Z] >>> HTTP REQUEST PATCH https://cloudfunctions.googleapis.com/v1/projects/savour-deals/locations/us-central1/functions/handleStripeEvent {"updateMask":"sourceUploadUrl,name,labels,eventTrigger.resource,eventTrigger.eventType,eventTrigger.service"} 
+
+[debug] [2019-01-18T19:43:11.244Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:11.277Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:11.280Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:11.289Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:11.291Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:11.292Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:11.294Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:11.295Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:11.296Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:11.301Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:11.304Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:11.307Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:11.310Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:11.328Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:11.328Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:11.330Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:11.330Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:11.335Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:11.382Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:11.383Z] >>> HTTP REQUEST GET https://cloudfunctions.googleapis.com/v1/projects/savour-deals/locations/-/functions  
+ 
+[debug] [2019-01-18T19:43:11.814Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:11.816Z] >>> HTTP REQUEST GET https://cloudfunctions.googleapis.com/v1/operations/c2F2b3VyLWRlYWxzL3VzLWNlbnRyYWwxL2luY3JlbWVudFVzZXJDb3VudC9TRU9WNHhudUJlRQ  
+ 
+[debug] [2019-01-18T19:43:11.816Z] >>> HTTP REQUEST GET https://cloudfunctions.googleapis.com/v1/operations/c2F2b3VyLWRlYWxzL3VzLWNlbnRyYWwxL2RlY3JlbWVudFVzZXJDb3VudC9PZnhiWmQ2Z2hoUQ  
+ 
+[debug] [2019-01-18T19:43:11.816Z] >>> HTTP REQUEST GET https://cloudfunctions.googleapis.com/v1/operations/c2F2b3VyLWRlYWxzL3VzLWNlbnRyYWwxL2luY3JlbWVudFZlbmRvckNvdW50L0tVdzRSYldoSi04  
+ 
+[debug] [2019-01-18T19:43:11.817Z] >>> HTTP REQUEST GET https://cloudfunctions.googleapis.com/v1/operations/c2F2b3VyLWRlYWxzL3VzLWNlbnRyYWwxL2RlY3JlbWVudFZlbmRvckFjY291bnQvdnI3VjVzWWVNVkE  
+ 
+[debug] [2019-01-18T19:43:11.817Z] >>> HTTP REQUEST GET https://cloudfunctions.googleapis.com/v1/operations/c2F2b3VyLWRlYWxzL3VzLWNlbnRyYWwxL3NpZ251cC9wSjhFN3hucmRhVQ  
+ 
+[debug] [2019-01-18T19:43:11.817Z] >>> HTTP REQUEST GET https://cloudfunctions.googleapis.com/v1/operations/c2F2b3VyLWRlYWxzL3VzLWNlbnRyYWwxL2RlbGV0ZUFjY291bnQvZG03djhYS2JLd1E  
+ 
+[debug] [2019-01-18T19:43:11.817Z] >>> HTTP REQUEST GET https://cloudfunctions.googleapis.com/v1/operations/c2F2b3VyLWRlYWxzL3VzLWNlbnRyYWwxL3VwZGF0ZVZlbmRvci96QWpFV3N3UUhyWQ  
+ 
+[debug] [2019-01-18T19:43:11.818Z] >>> HTTP REQUEST GET https://cloudfunctions.googleapis.com/v1/operations/c2F2b3VyLWRlYWxzL3VzLWNlbnRyYWwxL2RlYWxSZWRlZW1lZC9qcklQRVNjLUlMOA  
+ 
+[debug] [2019-01-18T19:43:11.818Z] >>> HTTP REQUEST GET https://cloudfunctions.googleapis.com/v1/operations/c2F2b3VyLWRlYWxzL3VzLWNlbnRyYWwxL2xveWFsdHlSZWRlZW1lZC8xeG5NYVpvWFZoUQ  
+ 
+[debug] [2019-01-18T19:43:11.818Z] >>> HTTP REQUEST GET https://cloudfunctions.googleapis.com/v1/operations/c2F2b3VyLWRlYWxzL3VzLWNlbnRyYWwxL2luY3JlbWVudFN0cmlwZS8xQ09qQVRYX2NYYw  
+ 
+[debug] [2019-01-18T19:43:11.819Z] >>> HTTP REQUEST GET https://cloudfunctions.googleapis.com/v1/operations/c2F2b3VyLWRlYWxzL3VzLWNlbnRyYWwxL3VzZXJBY3RpdmVDaGFuZ2VkL1JJV2Zyak85cG9B  
+ 
+[debug] [2019-01-18T19:43:11.819Z] >>> HTTP REQUEST GET https://cloudfunctions.googleapis.com/v1/operations/c2F2b3VyLWRlYWxzL3VzLWNlbnRyYWwxL3VwZGF0ZVN0cmlwZVN1YnNjcmlwdGlvbi9xTkNCSjhNaWFSaw  
+ 
+[debug] [2019-01-18T19:43:11.819Z] >>> HTTP REQUEST GET https://cloudfunctions.googleapis.com/v1/operations/c2F2b3VyLWRlYWxzL3VzLWNlbnRyYWwxL2NyZWF0ZVN0cmlwZS91N2JwZGJsMWJJYw  
+ 
+[debug] [2019-01-18T19:43:11.819Z] >>> HTTP REQUEST GET https://cloudfunctions.googleapis.com/v1/operations/c2F2b3VyLWRlYWxzL3VzLWNlbnRyYWwxL2F0dGFjaENhcmRTdHJpcGUvSTlzSjNIaEJVeTg  
+ 
+[debug] [2019-01-18T19:43:11.820Z] >>> HTTP REQUEST GET https://cloudfunctions.googleapis.com/v1/operations/c2F2b3VyLWRlYWxzL3VzLWNlbnRyYWwxL2NoYW5nZVN0cmlwZVNvdXJjZS9qejdxS2t0X2JUYw  
+ 
+[debug] [2019-01-18T19:43:11.820Z] >>> HTTP REQUEST GET https://cloudfunctions.googleapis.com/v1/operations/c2F2b3VyLWRlYWxzL3VzLWNlbnRyYWwxL2dldEN1c3RvbWVyU3RyaXBlL3IxcW8xUmNQN2VZ  
+ 
+[debug] [2019-01-18T19:43:11.820Z] >>> HTTP REQUEST GET https://cloudfunctions.googleapis.com/v1/operations/c2F2b3VyLWRlYWxzL3VzLWNlbnRyYWwxL2dldEludm9pY2VTdHJpcGUvMzdyeG1hNThFOHc  
+ 
+[debug] [2019-01-18T19:43:11.820Z] >>> HTTP REQUEST GET https://cloudfunctions.googleapis.com/v1/operations/c2F2b3VyLWRlYWxzL3VzLWNlbnRyYWwxL2V2ZW50cy9pZEVpd00tUDRzbw  
+ 
+[debug] [2019-01-18T19:43:11.821Z] >>> HTTP REQUEST GET https://cloudfunctions.googleapis.com/v1/operations/c2F2b3VyLWRlYWxzL3VzLWNlbnRyYWwxL2hhbmRsZVN0cmlwZUV2ZW50L19hSHpiUjcyLTRB  
+ 
+[debug] [2019-01-18T19:43:12.086Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:12.087Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:12.105Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:12.106Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:12.107Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:12.119Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:12.121Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:12.121Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:12.122Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:12.122Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:12.123Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:12.124Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:12.124Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:12.132Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:12.134Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:12.139Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:12.146Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:12.150Z] <<< HTTP RESPONSE 200
+[debug] [2019-01-18T19:43:12.167Z] <<< HTTP RESPONSE 200

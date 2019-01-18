@@ -131,7 +131,8 @@ exports.dealRedeemed = functions.database.ref('Deals/{deal}/redeemed/{user}').on
         'user_id': context.params.user,
         'deal_id': snap.key,
         'description' : data.deal_description,
-        "deal_photo" : data.photo
+        "deal_photo" : data.photo,
+        'vendor_id' : data.vendor_id
       });
       return 0;
     });
