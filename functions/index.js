@@ -126,7 +126,7 @@ exports.dealRedeemed = functions.database.ref('Deals/{deal}/redeemed/{user}').on
       //add to deal feed. On device, these can be used to recapture what deal was redeemed
       const now = Math.floor(Date.now()/1000);
       admin.database().ref('/Redemptions').push({
-        'timestamp': now,
+        'timestamp': (now*-1),//store as inverse for firebase indexing
         'type' : "deal",
         'user_id': context.params.user,
         'deal_id': snap.key,
@@ -155,7 +155,7 @@ exports.loyaltyRedeemed = functions.database.ref('Users/{user}/loyalty/{vendor}/
       if (snap.exists()){ //this really should exist if we are here. 
         const now = Math.floor(Date.now()/1000);
         admin.database().ref('/Redemptions').push({
-          'timestamp': now,
+          'timestamp': (now*-1),//store as inverse for firebase indexing
           'type' : "loyalty",
           'user_id': context.params.user,
           'vendor_id': context.params.vendor,
