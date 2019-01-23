@@ -207,6 +207,7 @@ exports.dealRedeemed = functions.database.ref('Deals/{deal}/redeemed/{user}').on
 
 //user redeemed loyalty deal
 exports.loyaltyRedeemed = functions.database.ref('Users/{user}/loyalty/{vendor}/redemptions/count').onUpdate((change, context) => {
+  const now = Math.floor(Date.now()/1000);
   if(change.after.val() < change.before.val()){//assume that the only way to lose points is by redeeming points
     const vendorID = context.params.vendor;
     const userID = context.params.user;
@@ -217,7 +218,6 @@ exports.loyaltyRedeemed = functions.database.ref('Users/{user}/loyalty/{vendor}/
     //add to deal feed. On device, these can be used to recapture what deal was redeemed
     return admin.database().ref("/Vendors").child(vendorID).once("value").then(snap => {
       if (snap.exists()){ //this really should exist if we are here. 
-        const now = Math.floor(Date.now()/1000);
         const pushedRef = admin.database().ref('/Redemptions').push({
           'timestamp': (now*-1),//store as inverse for firebase indexing
           'type' : "loyalty",
@@ -233,6 +233,16 @@ exports.loyaltyRedeemed = functions.database.ref('Users/{user}/loyalty/{vendor}/
     });
   }else{
     console.log('Loyalty count increased: ', vendorID);
+    const pushedRef = admin.database().ref('/Redemptions').push({
+      'timestamp': (now*-1),//store as inverse for firebase indexing
+      'type' : "loyalty_checkin",
+      'user_id': userID,
+      'vendor_id': vendorID,
+      'description' : snap.val().loyalty.loyalty_deal,
+      "vendor_photo" : snap.val().photo
+    });
+    //get our post's key so we can update friend's feeds
+    postToFriendsFeed(pushedRef.getKey(),userID,(now*-1));
   }
 });
 
