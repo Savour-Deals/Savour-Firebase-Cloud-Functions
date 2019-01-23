@@ -247,7 +247,6 @@ exports.loyaltyRedeemed = functions.database.ref('Users/{user}/loyalty/{vendor}/
 });
 
 function postToFriendsFeed(postID,userID,timestamp){
-  //TODO: Add update feed for friends
   const usersRef = admin.database().ref('/Users');
   usersRef.child(userID).child('friends_list').once("value").then(snap => {
     if (snap.exists()){
