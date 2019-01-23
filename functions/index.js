@@ -248,6 +248,16 @@ exports.loyaltyRedeemed = functions.database.ref('Users/{user}/loyalty/{vendor}/
 
 function postToFriendsFeed(postID,userID,timestamp){
   //TODO: Add update feed for friends
+  const usersRef = admin.database().ref('/Users');
+  usersRef.child(userID).child('friends_list').once("value").then(snap => {
+    if (snap.exists()){
+      const friends = snap.val();
+      friends.forEach(friend => {
+        //add postID to friend's feed
+        usersRef.child(friend.key).child("redemption_feed").child(postID).set(timestamp);
+      });
+    }
+  });
 }
 
 function incrementStripe(vendor_id,amount){
