@@ -13,6 +13,11 @@ let GooglePlaces = require('node-googleplaces');
 
 var stripe = require("stripe")(functions.config().keys.secret_key);
 const endpointSecret = functions.config().keys.endpoint_secret;
+const onesignal_app_id = functions.config().keys.onesignal_app_id;
+const onesignal_key = functions.config().keys.onesignal;
+
+
+var moment = require("moment-timezone");
 
 
 // The Firebase Admin SDK to access the Firebase Realtime Database.
@@ -41,6 +46,61 @@ exports.signup = functions.auth.user().onCreate((user) => {
   user_ref = admin.database().ref('Users/').child(user.uid);
   user_ref.child('email').set(user.email);
   user_ref.child('full_name').set(user.displayName); 
+  return 0;
+});
+
+exports.dealCreated = functions.database.ref('Deals/{dealId}').onCreate((snapshot, context)=> {
+  const dealKey = snapshot.key;
+  const deal = snapshot.val();
+  var sendtime;
+  const nowunix_plus5 = moment().unix()+300;//5min in future for 
+  if (nowunix_plus5 > deal.start_time){//deal is set to have already started. set notification for in the future 
+    sendtime = moment(nowunix_plus5*1000).format("YYYY-MM-DD HH:mm:ss zZ");
+  }else{//deal is scheduled to start in the future, set notification for when the deal starts
+    sendtime = moment(deal.start_time*1000).format("YYYY-MM-DD HH:mm:ss zZ");
+  }
+  console.log(dealKey, sendtime);
+  var message = { 
+    app_id: onesignal_app_id,
+    content_available: true,
+    headings: {"en": deal.vendor_name + " just posted a new deal!"},
+    contents: {"en": deal.deal_description},
+    ios_attachments: {"id":deal.photo},
+    big_picture: deal.photo,
+    data: {"deal": dealKey},
+    send_after: sendtime,
+    filters: [
+        {"field": "tag", "key": deal.vendor_id, "relation": "=", "value": "true"}
+    ]
+  };
+  var headers = {
+    "Content-Type": "application/json; charset=utf-8",
+    "Authorization": "Basic " + onesignal_key
+  };
+  
+  var options = {
+    host: "onesignal.com",
+    port: 443,
+    path: "/api/v1/notifications",
+    method: "POST",
+    headers: headers
+  };
+  
+  var https = require('https');
+  var req = https.  request(options, function(res) {  
+    res.on('data', function(data) {
+      console.log("Response:");
+      console.log(JSON.parse(data));
+    });
+  });
+  
+  req.on('error', function(e) {
+    console.log("ERROR:");
+    console.log(e);
+  });
+  
+  req.write(JSON.stringify(message));
+  req.end();
   return 0;
 });
 
