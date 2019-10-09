@@ -16,6 +16,8 @@ const endpointSecret = functions.config().keys.endpoint_secret;
 const onesignal_app_id = functions.config().keys.onesignal_app_id;
 const onesignal_key = functions.config().keys.onesignal;
 
+const DEAL_REDEMPTION = 0;
+const LOYALTY_REDEMPTION = 1;
 
 var moment = require("moment-timezone");
 
@@ -181,34 +183,43 @@ exports.dealRedeemed = functions.database.ref('Deals/{deal}/redeemed/{user}').on
   if (userID == context.auth.uid){
     snapshot.ref.set(now);//make sure redemption time is consistent across apps
     return snapshot.ref.parent.parent.once("value").then(snap => {//get uid
-      data = snap.val();
-      console.log('Deal Redeemed: ', data.vendor_id, snap.key);
-      incrementStripe(data.vendor_id,1);
-      incrementRedemptions(data.vendor_id,0);
+      let dealData = snap.val();
+      console.log('Deal Redeemed: ', dealData.vendor_id, snap.key);
 
+      //handle payment and redemption logging
+      incrementStripe(dealData.vendor_id, 1);
+      incrementRedemptions(dealData.vendor_id, DEAL_REDEMPTION);
+
+      //increase the user's savings total
+      let redemptionValue = (dealData.value || 3); //load the deals's value. If its null, guestimate that its worth $3
+      incrementSavings(userID, redemptionValue)
+
+      //Now we are going to add this deal to the global feed so we can see whose redeeming our deals!
       console.log("Pushing to global redemptions feed");
-      //add to deal feed. On device, these can be used to recapture what deal was redeemed
       const pushedRef = admin.database().ref('/Redemptions').push({
         'timestamp': (now*-1),//store as inverse for firebase indexing
         'type' : "deal",
         'user_id': userID,
         'deal_id': snap.key,
-        'description' : data.deal_description,
-        "deal_photo" : data.photo,
-        'vendor_id' : data.vendor_id
+        'description' : dealData.deal_description,
+        "deal_photo" : dealData.photo,
+        'vendor_id' : dealData.vendor_id
       });
+
+      //Now lets update the feeds of any friends this user has! They have to know what their friends are up to!
       console.log("Pushing to friends redemptions feed");
       postToFriendsFeed(pushedRef.getKey(),userID,(now*-1));
       return 0;
     });
   }else{
+    //redemption ID only changed. This is how we let users redeem the deal again
     console.log(userID + " != " + context.auth.uid + ". Was the key just changed? Stripe not incremented.");
     return 0;
   }
 
 });
 
-//user redeemed loyalty deal
+//user redeemed/checked-in loyalty deal
 exports.loyaltyRedeemed = functions.database.ref('Users/{user}/loyalty/{vendor}/redemptions/count').onUpdate((change, context) => {
   const now = Math.floor(Date.now()/1000);
   change.after.ref.parent.child("time").set(now);//make sure redemption time is consistent across apps
@@ -216,30 +227,44 @@ exports.loyaltyRedeemed = functions.database.ref('Users/{user}/loyalty/{vendor}/
   const userID = context.params.user;
   if(change.after.val() < change.before.val()){//assume that the only way to lose points is by redeeming points
     console.log('Loyalty Redeemed: ', vendorID);
-    incrementStripe(vendorID,1);
-    incrementRedemptions(vendorID,1);
+
+    //handle payment and redemption logging
+    incrementStripe(vendorID, 1);
+    incrementRedemptions(vendorID, LOYALTY_REDEMPTION);
   
-    //add to deal feed. On device, these can be used to recapture what deal was redeemed
+    //We need to query for the loyalty program data
     return admin.database().ref("/Vendors").child(vendorID).once("value").then(snap => {
       if (snap.exists()){ //this really should exist if we are here. 
+        let vendorData = snap.val();
+
+        //increase the user's savings total
+        let redemptionValue = (vendorData.loyalty.loyalty_value || 3); //load the redemption's value. If its null, guestimate that its worth $3
+        incrementSavings(userID, redemptionValue)
+
+        //Now we are going to add this redemption to the global feed so we can see whose redeeming our loyalty deals!
         console.log("Pushing to global redemptions feed");
         const pushedRef = admin.database().ref('/Redemptions').push({
           'timestamp': (now*-1),//store as inverse for firebase indexing
           'type' : "loyalty",
           'user_id': userID,
           'vendor_id': vendorID,
-          'description' : snap.val().loyalty.loyalty_deal,
-          "vendor_photo" : snap.val().photo
+          'description' : vendorData.loyalty.loyalty_deal,
+          "vendor_photo" : vendorData.photo
         });
+
+        //Now lets update the feeds of any friends this user has! They have to know what their friends are up to!
         console.log("Pushing to friends redemptions feed");
         //get our post's key so we can update friend's feeds
         postToFriendsFeed(pushedRef.getKey(),userID,(now*-1));
       }
       return 0;
     });
-  }else{
+  }else{//This was just a check-in
     console.log('Loyalty count increased: ', vendorID);
+
+    //We need to query for the loyalty program data
     return admin.database().ref("/Vendors").child(vendorID).once("value").then(snap => {
+      //Now we are going to add this check-in to the global feed so we can see who went here!
       console.log("Pushing to global redemptions feed");
       const pushedRef = admin.database().ref('/Redemptions').push({
         'timestamp': (now*-1),//store as inverse for firebase indexing
@@ -249,6 +274,8 @@ exports.loyaltyRedeemed = functions.database.ref('Users/{user}/loyalty/{vendor}/
         'description' : snap.val().loyalty.loyalty_deal,
         "vendor_photo" : snap.val().photo
       });
+
+      //Now lets update the feeds of any friends this user has! They have to know what their friends are up to!
       console.log("Pushing to friends redemptions feed");
       //get our post's key so we can update friend's feeds
       postToFriendsFeed(pushedRef.getKey(),userID,(now*-1));
@@ -263,7 +290,7 @@ function postToFriendsFeed(postID,userID,timestamp){
       const friends = snap.val();
       Object.keys(friends).forEach(friend => {
         //add postID to friend's feed
-        usersRef.child(friend).child("redemption_feed").child(postID).set(timestamp);
+        usersRef.child(friend).child("friends_redemption_feed").child(postID).set(timestamp);
       });
     }
   });
@@ -294,25 +321,36 @@ function incrementStripe(vendor_id,amount){
 
 //This function is left here for old app versions who still call this function. 
 exports.incrementStripe = functions.https.onCall((data, response) => {
-  console.log("incrmentStripe oncall removed");
+  console.log("incrementStripe oncall removed");
 });
 
 function incrementRedemptions(vendor_id,deal_type){
   const vendorRef = admin.database().ref('/Vendors').child(vendor_id).child('period_redemptions');
   switch (deal_type) {
-    case 1:
+    case LOYALTY_REDEMPTION:
       //deal_type is loyalty
       vendorRef.child('loyalty').transaction(function (current_value) {
         return (current_value || 0) + 1;
       });
       break;
-    default:
+    case DEAL_REDEMPTION:
       //regular deal (deal_type=0) or deal type not given
       vendorRef.child('deals').transaction(function (current_value) {
         return (current_value || 0) + 1;
       });
       break;
+    default:
+      //Unknown redemption type! Don't do anything and we should be fine
+      break;
   }
+}
+
+function incrementSavings(userID, redemptionValue){
+  console.log(userID + " just saved $" + redemptionValue);
+  const usersRef = admin.database().ref('/Users');
+  usersRef.child(userID).child('total_savings').transaction(function (current_value) {
+    return (current_value || 0) + redemptionValue;
+  });
 }
 
 exports.userActiveChanged = functions.database.ref('Users/{user}/stripe/active').onWrite((change) => {
