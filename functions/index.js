@@ -6,9 +6,8 @@ const fetch = require("isomorphic-fetch");
 //firebase deploy --only functions
 // The Cloud Functions for Firebase SDK to create Cloud Functions and setup triggers.
 const functions = require('firebase-functions');
-let GeoFire = require('geofire');
+const geofire = require('geofire');
 
-const endpointSecret = functions.config().keys.endpoint_secret;
 const onesignal_app_id = functions.config().keys.onesignal_app_id;
 const onesignal_key = functions.config().keys.onesignal;
 
@@ -53,7 +52,7 @@ exports.dealCreated = functions.database.ref('Deals/{dealId}').onCreate((snapsho
   var fargoLatLong = [46.8772, -96.7898];
   var minneapolisLatLong = [44.9778, -93.2650];
 
-  var geoFire = new GeoFire(admin.database().ref('/Vendors_Location'));
+  var geoFire = new geofire.GeoFire(admin.database().ref('/Vendors_Location'));
 
   //find out if we should send this to minneapolis or Fargo users
   geoFire.get(deal.vendor_id).then(function(location) {
@@ -70,10 +69,10 @@ exports.dealCreated = functions.database.ref('Deals/{dealId}').onCreate((snapsho
       }else{//deal is scheduled to start in the future, set notification for when the deal starts
         sendtime = moment(deal.start_time*1000).format("YYYY-MM-DD HH:mm:ss zZ");
       }
-      if(geoFire.distance(location,minneapolisLatLong) > geoFire.distance(location,fargoLatLong)){
-        locationFilter = "Fargo";
+      if(geofire.GeoFire.distance(location,minneapolisLatLong) > geofire.GeoFire.distance(location,fargoLatLong)){
+        locationFilter = ["Fargo"];
       }else{
-        locationFilter = "Minneapolis";
+        locationFilter = ["Minneapolis"];
       }
       console.log(dealKey, sendtime);
       var message = { 
@@ -87,6 +86,9 @@ exports.dealCreated = functions.database.ref('Deals/{dealId}').onCreate((snapsho
         send_after: sendtime,
         included_segments: locationFilter,
       };
+      console.log("Message:");
+      console.log(message);
+
       var headers = {
         "Content-Type": "application/json; charset=utf-8",
         "Authorization": "Basic " + onesignal_key
@@ -136,7 +138,7 @@ exports.updateVendor = functions.database.ref('Vendors/{newVendor}').onWrite((ch
     beforeAddress = before.address;
   }
   const after = change.after.val();
-  var geoFire = new GeoFire(admin.database().ref('/Vendors_Location'));
+  var geoFire = new geofire.GeoFire(admin.database().ref('/Vendors_Location'));
   if (change.after.val().address){
     if (beforeAddress != after.address){
       let url ="https://maps.googleapis.com/maps/api/geocode/json?address=" + encodeURIComponent(after.address) + "&key=AIzaSyAehSHrFZDjtzjhqRAg3j-PvJKTqv3P9Wg";
@@ -179,7 +181,7 @@ exports.updateVendor = functions.database.ref('Vendors/{newVendor}').onWrite((ch
 //         console.log(url);
 //         return fetch(url).then(result => result.json()).then(data => {
 //           var loc = data["results"]["geometry"]["location"];
-//           var geoFire = new GeoFire(admin.database().ref('/Vendors_Location'));
+//           var geoFire = new geofire.GeoFire(admin.database().ref('/Vendors_Location'));
 //           return geoFire.set(snap.key, [loc["lat"], loc["lng"]]).then(function() {
 //             console.log(snap.key + " has been updated in GeoFire");
 //           }, function(error) {
