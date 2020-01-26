@@ -183,6 +183,11 @@ exports.dealRedeemed = functions.database.ref('Deals/{deal}/redeemed/{user}').on
       // incrementStripe(data.vendor_id,1);
       incrementRedemptions(data.vendor_id,0);
 
+      //increment savings
+      user_ref = admin.database().ref('Users/').child(userID);
+      user_ref.child('total_savings').transaction(function (current_value) {
+        return (current_value || 0) + (data.value || 3);//assume $3 if value is not present
+      });
       console.log("Pushing to global redemptions feed");
       //add to deal feed. On device, these can be used to recapture what deal was redeemed
       const pushedRef = admin.database().ref('/Redemptions').push({
@@ -216,20 +221,28 @@ exports.loyaltyRedeemed = functions.database.ref('Users/{user}/loyalty/{vendor}/
     //No longer charging through stripe
     // incrementStripe(vendorID,1);
     incrementRedemptions(vendorID,1);
+
+
   
     //add to deal feed. On device, these can be used to recapture what deal was redeemed
     return admin.database().ref("/Vendors").child(vendorID).once("value").then(snap => {
       if (snap.exists()){ //this really should exist if we are here. 
         console.log("Pushing to global redemptions feed");
+        var data = snap.val();
         const pushedRef = admin.database().ref('/Redemptions').push({
           'timestamp': (now*-1),//store as inverse for firebase indexing
           'type' : "loyalty",
           'user_id': userID,
           'vendor_id': vendorID,
-          'description' : snap.val().loyalty.loyalty_deal,
-          "vendor_photo" : snap.val().photo
+          'description' : data.loyalty.loyalty_deal,
+          "vendor_photo" : data.photo
         });
         console.log("Pushing to friends redemptions feed");
+        //increment savings
+        user_ref = admin.database().ref('Users/').child(userID);
+        user_ref.child('total_savings').transaction(function (current_value) {
+          return (current_value || 0) + (data.loyalty.value || 5);//assume $5 if value is not present
+        });
         //get our post's key so we can update friend's feeds
         postToFriendsFeed(pushedRef.getKey(),userID,(now*-1));
       }
