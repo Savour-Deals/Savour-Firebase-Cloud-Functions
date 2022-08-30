@@ -12,7 +12,7 @@
     "firebase-functions": "^3.3.0",
     "geofire": "^5.0.1",
     "isomorphic-fetch": "^2.2.1",
-    "moment-timezone": "^0.5.27",
+    "moment-timezone": "^0.5.35",
     "xmlhttprequest": "^1.8.0"
   },
   "private": true
